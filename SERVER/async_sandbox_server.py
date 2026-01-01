@@ -264,6 +264,7 @@ async def execute_code_task(task_id: str, code: str, timeout: int,
         execution_tasks[task_id]['status'] = "completed"
         execution_tasks[task_id]['result'] = result
         execution_tasks[task_id]['completed_at'] = time.time()
+        execution_tasks[task_id]['tmp_path'] = temp_dir
         
     except Exception as e:
         # 任务失败
@@ -334,14 +335,19 @@ async def get_task_status(task_id: str):
         raise HTTPException(status_code=404, detail="任务不存在")
     
     task = execution_tasks[task_id]
-    
-    return {
+        # 添加tmp_path字段（如果存在且任务还在运行中）
+    response = {
         "task_id": task_id,
         "status": task['status'],
         "created_at": task['created_at'],
         "completed_at": task.get('completed_at'),
         "elapsed_time": time.time() - task['created_at'] if task.get('completed_at') is None else task['completed_at'] - task['created_at']
     }
+
+    if 'tmp_path' in task and task['status'] in ["pending", "running"]:
+        response['tmp_path'] = task['tmp_path']
+
+    return response
 
 @app.get("/task/{task_id}/result")
 async def get_task_result(task_id: str):
@@ -364,7 +370,8 @@ async def get_task_result(task_id: str):
     
     # 返回结果
     result = task['result'].copy()
-    
+    if 'tmp_path' in task:
+        result['tmp_path'] = task['tmp_path']
     # 清理过期的任务记录（30分钟后）
     async def cleanup_task():
         await asyncio.sleep(1800)  # 30分钟
@@ -492,6 +499,12 @@ if __name__ == "__main__":
 
 
 # curl -X POST http://localhost:1234/execute   -H "Content-Type: application/json"   -d '{
+#     "code": "# OpenCV读取视频帧\nimport cv2\nimport os\n\nvideo_path = \"/project/peilab/qjl/CODE/DATA/videos/0AGCS.mp4\"\noutput_path = \"frame_20s.jpg\"\n\n# 检查文件是否存在\nif not os.path.exists(video_path):\n    print(f\"视频文件不存在: {video_path}\")\n    exit(1)\n\nprint(f\"视频文件大小: {os.path.getsize(video_path)} bytes\")\n\n# 打开视频\ncap = cv2.VideoCapture(video_path)\nfps = cap.get(cv2.CAP_PROP_FPS)\ntotal_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))\nprint(f\"FPS: {fps}, 总帧数: {total_frames}\")\n\n# 计算第20秒的帧位置\nframe_20s = int(20 * fps)\nprint(f\"第20秒帧位置: {frame_20s}\")\n\n# 跳转到第20秒\ncap.set(cv2.CAP_PROP_POS_FRAMES, frame_20s)\nret, frame = cap.read()\n\nif ret:\n    h, w = frame.shape[:2]\n    print(f\"帧尺寸: {w}x{h}\")\n    \n    # 裁剪中心区域\n    cropped = frame[h//4:3*h//4, w//4:3*w//4]\n    cv2.imwrite(output_path, cropped)\n    print(f\"保存裁剪帧: {os.path.abspath(output_path)}\")\n    print(f\"文件存在: {os.path.exists(output_path)}\")\nelse:\n    print(\"读取帧失败\")\n\ncap.release()",
+#     "timeout": 30
+#   }'
+
+
+# curl -X GET http://0.0.0.0:1234/task/5519e62d-f41f-46ad-b59c-ad992a1593b6/result   -H "Content-Type: application/json"   -d '{
 #     "code": "# OpenCV读取视频帧\nimport cv2\nimport os\n\nvideo_path = \"/project/peilab/qjl/CODE/DATA/videos/0AGCS.mp4\"\noutput_path = \"frame_20s.jpg\"\n\n# 检查文件是否存在\nif not os.path.exists(video_path):\n    print(f\"视频文件不存在: {video_path}\")\n    exit(1)\n\nprint(f\"视频文件大小: {os.path.getsize(video_path)} bytes\")\n\n# 打开视频\ncap = cv2.VideoCapture(video_path)\nfps = cap.get(cv2.CAP_PROP_FPS)\ntotal_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))\nprint(f\"FPS: {fps}, 总帧数: {total_frames}\")\n\n# 计算第20秒的帧位置\nframe_20s = int(20 * fps)\nprint(f\"第20秒帧位置: {frame_20s}\")\n\n# 跳转到第20秒\ncap.set(cv2.CAP_PROP_POS_FRAMES, frame_20s)\nret, frame = cap.read()\n\nif ret:\n    h, w = frame.shape[:2]\n    print(f\"帧尺寸: {w}x{h}\")\n    \n    # 裁剪中心区域\n    cropped = frame[h//4:3*h//4, w//4:3*w//4]\n    cv2.imwrite(output_path, cropped)\n    print(f\"保存裁剪帧: {os.path.abspath(output_path)}\")\n    print(f\"文件存在: {os.path.exists(output_path)}\")\nelse:\n    print(\"读取帧失败\")\n\ncap.release()",
 #     "timeout": 30
 #   }'

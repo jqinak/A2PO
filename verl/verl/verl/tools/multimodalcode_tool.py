@@ -236,136 +236,111 @@ class MultiModalCode_tool(BaseTool):
 
         return instance_id, ToolResponse()
 
-    def resize_min_image_opencv(self, image: np.ndarray) -> np.ndarray:
-        """
-        Qwen-VL raises an error for images with height or width less than 32 pixels.
-        使用OpenCV格式处理图像。
+    # def resize_min_image_opencv(self, image: np.ndarray) -> np.ndarray:
+    #     """
+    #     Qwen-VL raises an error for images with height or width less than 32 pixels.
+    #     使用OpenCV格式处理图像。
         
-        Args:
-            image: OpenCV格式的图像，类型为numpy.ndarray，形状为(H, W, C)或(H, W)
-                其中H为高度，W为宽度，C为通道数(1, 3或4)
-                数据类型应为uint8或float32/float64
+    #     Args:
+    #         image: OpenCV格式的图像，类型为numpy.ndarray，形状为(H, W, C)或(H, W)
+    #             其中H为高度，W为宽度，C为通道数(1, 3或4)
+    #             数据类型应为uint8或float32/float64
             
-        Returns:
-            调整大小后的图像，类型与输入相同，为numpy.ndarray
-        """
-        # 类型检查
-        if not isinstance(image, np.ndarray):
-            raise TypeError(f"Input image must be a numpy.ndarray, got {type(image)}")
+    #     Returns:
+    #         调整大小后的图像，类型与输入相同，为numpy.ndarray
+    #     """
+    #     # 类型检查
+    #     if not isinstance(image, np.ndarray):
+    #         raise TypeError(f"Input image must be a numpy.ndarray, got {type(image)}")
         
-        # 维度检查
-        if image.ndim not in [2, 3]:
-            raise ValueError(f"Image must have 2 or 3 dimensions, got {image.ndim}")
+    #     # 维度检查
+    #     if image.ndim not in [2, 3]:
+    #         raise ValueError(f"Image must have 2 or 3 dimensions, got {image.ndim}")
         
-        # 获取图像尺寸 (OpenCV中是先高后宽)
-        height, width = image.shape[:2]
+    #     # 获取图像尺寸 (OpenCV中是先高后宽)
+    #     height, width = image.shape[:2]
         
-        # 处理长宽比过大的情况
-        if max(height, width) / min(height, width) > 200:
-            max_val = max(height, width)
-            min_val = min(height, width)
+    #     # 处理长宽比过大的情况
+    #     if max(height, width) / min(height, width) > 200:
+    #         max_val = max(height, width)
+    #         min_val = min(height, width)
 
-            old_scale = max_val / min_val
-            max_ratio = min(150, old_scale / 2)
-            target_max = int(min_val * max_ratio)
+    #         old_scale = max_val / min_val
+    #         max_ratio = min(150, old_scale / 2)
+    #         target_max = int(min_val * max_ratio)
 
-            if height > width:
-                new_height = target_max
-                new_width = int(width * old_scale / max_ratio)
-            else:
-                new_width = target_max
-                new_height = int(height * old_scale / max_ratio)
+    #         if height > width:
+    #             new_height = target_max
+    #             new_width = int(width * old_scale / max_ratio)
+    #         else:
+    #             new_width = target_max
+    #             new_height = int(height * old_scale / max_ratio)
             
-            # 确保尺寸为正数
-            new_width = max(1, new_width)
-            new_height = max(1, new_height)
+    #         # 确保尺寸为正数
+    #         new_width = max(1, new_width)
+    #         new_height = max(1, new_height)
             
-            # 使用OpenCV的resize函数
-            image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LANCZOS4)
-            height, width = image.shape[:2]
+    #         # 使用OpenCV的resize函数
+    #         image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LANCZOS4)
+    #         height, width = image.shape[:2]
 
-        # 处理最小边小于32像素的情况
-        if min(height, width) >= 32:
-            return image
+    #     # 处理最小边小于32像素的情况
+    #     if min(height, width) >= 32:
+    #         return image
 
-        ratio = 32 / min(height, width)
-        new_height = ceil(height * ratio)
-        new_width = ceil(width * ratio)
+    #     ratio = 32 / min(height, width)
+    #     new_height = ceil(height * ratio)
+    #     new_width = ceil(width * ratio)
         
-        # 确保尺寸为正数
-        new_width = max(1, new_width)
-        new_height = max(1, new_height)
+    #     # 确保尺寸为正数
+    #     new_width = max(1, new_width)
+    #     new_height = max(1, new_height)
         
-        # 使用OpenCV的resize函数
-        new_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LANCZOS4)
-        return new_image
+    #     # 使用OpenCV的resize函数
+    #     new_image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_LANCZOS4)
+    #     return new_image
 
-    def request_python_execution(self, instance_id, code_string, code_timeout=200, request_timeout=240):
+    async def execute(self, instance_id: str, **kwargs) -> tuple[ToolResponse, float, dict]:
+        '''
+        Docstring for execute
+            instance_id: url for code result
+
+        :rtype: tuple[ToolResponse, float, dict]
+        '''
         try:
-            resjson = requests.post(
-                self.code_sandbox_url,
-                json={
-                    # "session_id": self.session_id,
-                    "code": code_string,
-                    "timeout": code_timeout
-                },
-                timeout=request_timeout
-            ).json()
-            result_dict = resjson['output']
+            resjson = requests.get(instance_id)
+            # {"success":true,
+            # "stdout":"视频文件大小: 1348854 bytes\nFPS: 24.0, 总帧数: 657\n第20秒帧位置: 480\n帧尺寸: 480x270\n保存裁剪帧: /project/peilab/qjl/CODE/SERVER/tmp/tmp3xi_ezcy/frame_20s.jpg\n文件存在: True\n",
+            # "stderr":"",
+            # "returncode":0,
+            # "execution_time":1.5079731941223145,
+            # "tmp_path": absolute_dir}
+            stdout = resjson['stdout']
+            stderr = resjson['stderr']
+            tool_response_text = f"[Sand_Box_Server]: {{success:{resjson['success']} stdout:{stdout}, stderr:{stderr}}}"
+            tmp_path = resjson['tmp_path']
+            image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'}
+            video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.m4v'}
+            # 获取所有文件路径
+            image_list = []
+            video_list = []
+            for root, dirs, files in os.walk(tmp_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    ext = os.path.splitext(file)[1].lower()
+                    if ext in image_extensions:
+                        image_list.append(file_path)
+                    elif ext in video_extensions:
+                        video_list.append(file_path)
+            return ToolResponse(text=tool_response_text, image=image_list, video=video_list), 0.0 if resjson['success'] else -0.05, {"success": resjson['success']}
+# return ToolResponse(text=tool_response_text, image=image_list if image_list else None, video=video_list if video_list else None), 0.0 if resjson['success'] else -0.05, {"success": resjson['success']}
+
         except Exception as err:
-            print(f' [ERROR code] Request to Jupyter sandbox failed: {err}')
-            return None
+            tool_response_text = f' [ERROR code] Request to Sand_Box_Server failed: {err}'
+            logging.error(tool_response_text)
+            return ToolResponse(text=tool_response_text, image=image_list, video=video_list), 0.0 if resjson['success'] else -0.05, {"success": resjson['success']}
 
-        image_video_fetched_list = []
-        paths = result_dict.get("image_video_path", [])
-        for idx, path in enumerate(paths):
-            try:
-                image_video_fetched = fetch_video(path)
-                # img_pil = self.maybe_resize_image(img_pil)
-                image_video_fetched_list.append(image_video_fetched)
-            except Exception as err:
-                print(f' [ERROR code] Failed to decode image {idx}: {err}')
-                continue
-
-        return dict(
-            status=resjson.get("status", "error"),
-            execution_time=resjson.get("execution_time", -1.0),
-            result=result_dict.get("result", ""),
-            stdout=result_dict.get("stdout", ""),
-            stderr=result_dict.get("stderr", ""),
-            image_video_fetched=image_video_fetched_list,
-            # videos=videos
-        )
-
-    async def execute(self, instance_id: str, code: str, **kwargs) -> tuple[ToolResponse, float, dict]:
         
-        code="# Pillow测试\nfrom PIL import Image\nimport os\n\nsrc = \"/project/peilab/qjl/CODE/DATA/images/000.png\"\ndst = \"pil_cropped.png\"\n\n# 裁剪并保存\nimg = Image.open(src)\nw, h = img.size\ncropped = img.crop((w//4, h//4, 3*w//4, 3*h//4))\ncropped.save(dst)\n\nprint(f\"原始: {w}x{h}\")\nprint(f\"裁剪: {cropped.size}\")\nprint(f\"保存到: {os.path.abspath(dst)}\")\nprint(f\"文件存在: {os.path.exists(dst)}\")",
-  
-
-        try:
-            res_json = self.request_python_execution(instance_id=instance_id, code_string=code)
-
-            if res_json is None:
-                error_msg = f"Error: The code is incorrect with result {res_json}"
-                logger.warning(f"Tool execution failed: {error_msg}")
-                return ToolResponse(text=error_msg), -0.05, {"success": False}
-        except Exception as e:
-            logger.error(f"Error processing multimodal deepresearch: {e}")
-            return ToolResponse(text=f"Error processing cideo: {e}"), -0.05, {"success": False}
-
-        response_text = f"[Code Excution Result]: {res_json}"
-        res = ToolResponse(
-                image=res_json['images'],
-                video=res_json['videos'],
-                text=response_text,
-            )
-        logging.info(f"工具Code执行成功, 结果:{res}")
-        return (
-            res,
-            0.05,
-            {"success": True},
-        )
-
     async def release(self, instance_id: str, **kwargs) -> None:
         if instance_id in self._instance_dict:
             del self._instance_dict[instance_id]

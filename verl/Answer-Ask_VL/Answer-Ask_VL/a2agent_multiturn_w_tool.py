@@ -79,7 +79,7 @@ You MUST plan extensively before each function call, and reflect extensively on 
 
 Python tool can help enhance your understanding of images/videos. Please use python flexibly in <code></code>code> XML tags. However, you can only call python tool to return one processed image/frame/clip/video in a single round; 
 
-When reading images/videos in your Python code, always use the provided absolute paths. However, when saving output files, use relative paths only. Do not modify or reconstruct absolute paths. The Sand_Box_Server will provide the real absolute path for saved files. 
+When reading images/videos in your Python code, always use the provided absolute paths. However, when saving output files, use relative paths only. Do not modify or reconstruct absolute paths. The Sand_Box_Server will provide the real absolute path for saved files. You can only save jpg, png and mp4 file.
 
 All your output should be in <think></think>, <answer></answer> or <code></code> XML tags."""
 
