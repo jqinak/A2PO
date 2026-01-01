@@ -1,0 +1,12 @@
+INFO:     Started server process [403218]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 1234): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+异步沙盒服务器启动在端口 1234
+允许写入的目录: /project/peilab/qjl/CODE/SERVER/tmp
+线程池大小: 50
+进程池大小: 10
+服务器已启动，等待请求...
+服务器正在关闭，清理资源...
